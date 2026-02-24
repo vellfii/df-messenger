@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "df_messenger",
+  "version": "${version}",
+  "name": "DF Messenger",
+  "description": "Adds a messenger to DiamondFire.",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/df_messenger/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "net.velli.df_messenger.DFMessenger"
+    ]
+  },
+  "mixins": [
+    "df_messenger.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
