@@ -2,29 +2,21 @@ package net.velli.df_messenger;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatScreen;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.component.type.ProfileComponent;
 import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.s2c.login.LoginHelloS2CPacket;
 import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket;
 import net.minecraft.network.packet.s2c.play.GameStateChangeS2CPacket;
-import net.minecraft.text.ObjectTextContent;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import net.minecraft.text.object.PlayerTextObjectContents;
-import net.minecraft.text.object.TextObjectContents;
 import net.velli.scelli.ScreenHandler;
 import net.velli.scelli.widget.widgets.Alignment;
-import net.velli.scelli.widget.widgets.StringInputData;
 import net.velli.scelli.widget.widgets.TextDisplayWidget;
 import net.velli.scelli.widget.widgets.Widgets;
 import net.velli.scelli.widget.widgets.containers.ContainerWidget;
 
-import java.util.ArrayList;
-import java.util.Dictionary;
-import java.util.Hashtable;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,7 +28,6 @@ public class MessageHandler extends ContainerWidget<MessageHandler> {
     public static float timer = 0f;
 
     public static boolean expectingLocate = false;
-    public static String queuedPlayer = "";
 
     public MessageHandler() {
         addWidgets(notificationWidget);
@@ -45,22 +36,28 @@ public class MessageHandler extends ContainerWidget<MessageHandler> {
     public static final Pattern INC_REGEX = Pattern.compile("\\[(.+) → You] (.+)");
     public static final Pattern OUT_REGEX = Pattern.compile("\\[You → (.+)] (.+)");
 
-    public static final Pattern LOCATE_SPAWN_REGEX = Pattern.compile(" {39}\\n(.+) currently at spawn\\n→ Server: (.+)\\n {39}");
+    public static final Pattern LOCATE_SPAWN_REGEX = Pattern.compile(" {39}\\n(.+) (is|are) currently at spawn\\n→ Server: (.+)\\n {39}");
+    public static final Pattern LOCATE_PLOT_REGEX = Pattern.compile(" {39}\\n(.+) (is|are) currently (.+) on:\\n\\n→ (.+)\\n→ Owner: (.+)\\n→ Server: (.+)\\n {39}");
 
     public static boolean packet(Packet<?> packet) {
         if (packet instanceof LoginHelloS2CPacket || packet instanceof GameStateChangeS2CPacket) MessageData.loadMessages();
         if (!(packet instanceof GameMessageS2CPacket(Text msgText, boolean overlay))) return false;
-        System.out.println(msgText);
         String string = msgText.getString();
 
         if (expectingLocate) {
             expectingLocate = false;
-            if (!string.equals("Error: Could not find that player.")) {
-                if (MessageData.instance.messages.get(queuedPlayer) == null) {
-                    MessageData.instance.messages.put(queuedPlayer, new ArrayList<>());
-                    MessageData.instance.messages.get(queuedPlayer).add("");
-                }
-                MessageScreen.setPlayer(queuedPlayer);
+            Matcher locate = LOCATE_SPAWN_REGEX.matcher(string);
+            if (locate.find()) {
+                String player = locate.group(1).equals("You") ? DFMessenger.MC.player.getName().getString() : locate.group(1);
+//                MessageData.addOrBumpPlayer(player);
+                MessageScreen.setPlayer(player);
+                return true;
+            }
+            locate = LOCATE_PLOT_REGEX.matcher(string);
+            if (locate.find()) {
+                String player = locate.group(1).equals("You") ? DFMessenger.MC.player.getName().getString() : locate.group(1);
+//                MessageData.addOrBumpPlayer(player);
+                MessageScreen.setPlayer(player);
                 return true;
             }
         }
@@ -69,16 +66,14 @@ public class MessageHandler extends ContainerWidget<MessageHandler> {
         if (inc.find()) {
             String sender = inc.group(1);
             String message = inc.group(2);
-            if (MessageData.instance.messages.get(sender) == null) {
-                MessageData.instance.messages.put(sender, new ArrayList<>());
-                MessageData.instance.messages.get(sender).add("");
-            }
-            MessageData.instance.messages.get(sender).add(sender + "§" + message);
+            message = message.replace("￼", "obj");
+            MessageData.addOrBumpPlayer(sender);
+            MessageData.instance.messages.get(sender).add(System.currentTimeMillis() + "§" + sender + "§" + message);
             timer = 4f;
             if (instance.notificationWidget.getWidgets().getFirst() instanceof TextDisplayWidget tdw) {
                 Text header = Text.object(
-                        new PlayerTextObjectContents(ProfileComponent.ofDynamic(inc.group(1)), true))
-                        .append(Text.literal(" " + inc.group(1) + ":"));
+                        new PlayerTextObjectContents(ProfileComponent.ofDynamic(sender), true))
+                        .append(Text.literal(" " + sender + ":"));
                 tdw.setLines(header);
                 for (OrderedText line : DFMessenger.wrapLines(Text.literal(message), 125)) {
                     tdw.addLine(line);
@@ -95,11 +90,9 @@ public class MessageHandler extends ContainerWidget<MessageHandler> {
         if (out.find()) {
             String receiver = out.group(1);
             String message = out.group(2);
-            if (MessageData.instance.messages.get(receiver) == null) {
-                MessageData.instance.messages.put(receiver, new ArrayList<>());
-                MessageData.instance.messages.get(receiver).add("");
-            }
-            MessageData.instance.messages.get(receiver).add("You§" + message);
+            message = message.replace("￼", "obj");
+            MessageData.addOrBumpPlayer(receiver);
+            MessageData.instance.messages.get(receiver).add(System.currentTimeMillis() + "§Y§" + message);
             MessageScreen.setPlayer(receiver);
             MessageScreen.updatePlayerList();
             MessageData.saveMessages();

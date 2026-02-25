@@ -13,6 +13,7 @@ import net.minecraft.text.TextVisitFactory;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Language;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -27,6 +28,7 @@ public class DFMessenger implements ClientModInitializer {
     public void onInitializeClient() {
         HudElementRegistry.attachElementAfter(VanillaHudElements.CHAT, Identifier.of(DFMessenger.MODID, "after_chat"), MessageHandler::render);
         DFMKeyBinds.init();
+
     }
 
     public static void sendCommand(String command) {
