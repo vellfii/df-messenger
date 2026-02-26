@@ -26,24 +26,7 @@ public class WrappedTextDisplayWidget extends TextDisplayWidget {
         int offsetY = 0;
         List<OrderedText> renderLines = new ArrayList<>();
         for (OrderedText line : lines) {
-            MutableText text = Text.empty();
-            StringBuilder sb = new StringBuilder();
-            AtomicReference<Style> oldStyle = new AtomicReference<>();
-            AtomicReference<Style> curStyle = new AtomicReference<>();
-            line.accept((index, style, codePoint) -> {
-                curStyle.set(style);
-                String s = new String(Character.toChars(codePoint));
-                if (oldStyle.get() == null || oldStyle.get() == style) {
-                    sb.append(s);
-                } else {
-                    text.append(Text.literal(sb.toString()).setStyle(oldStyle.get()));
-                    sb.setLength(0);
-                    sb.append(s);
-                }
-                oldStyle.set(style);
-                return true;
-            });
-            text.append(Text.literal(sb.toString()).setStyle(curStyle.get()));
+            Text text = DFMessenger.textFromOrdered(line);
             renderLines.addAll(textRenderer.wrapLines(text, textWidth));
         }
         for (OrderedText line : renderLines) {
