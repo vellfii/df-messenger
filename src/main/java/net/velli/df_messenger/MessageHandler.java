@@ -49,14 +49,12 @@ public class MessageHandler extends ContainerWidget<MessageHandler> {
             Matcher locate = LOCATE_SPAWN_REGEX.matcher(string);
             if (locate.find()) {
                 String player = locate.group(1).equals("You") ? DFMessenger.MC.player.getName().getString() : locate.group(1);
-//                MessageData.addOrBumpPlayer(player);
                 MessageScreen.setPlayer(player);
                 return true;
             }
             locate = LOCATE_PLOT_REGEX.matcher(string);
             if (locate.find()) {
                 String player = locate.group(1).equals("You") ? DFMessenger.MC.player.getName().getString() : locate.group(1);
-//                MessageData.addOrBumpPlayer(player);
                 MessageScreen.setPlayer(player);
                 return true;
             }
@@ -66,7 +64,6 @@ public class MessageHandler extends ContainerWidget<MessageHandler> {
         if (inc.find()) {
             String sender = inc.group(1);
             String message = inc.group(2);
-            message = message.replace("￼", "obj");
             MessageData.addOrBumpPlayer(sender);
             MessageData.instance.messages.get(sender).add(System.currentTimeMillis() + "§" + sender + "§" + message);
             timer = 4f;
@@ -82,6 +79,7 @@ public class MessageHandler extends ContainerWidget<MessageHandler> {
             if (!(DFMessenger.MC.currentScreen instanceof MessageScreen) || sender.equals(MessageScreen.player)) {
                 MessageScreen.setPlayer(sender);
             }
+            MessageScreen.messageBox.setScrollAmount(0);
             MessageScreen.updatePlayerList();
             MessageData.saveMessages();
             return true;
@@ -90,7 +88,6 @@ public class MessageHandler extends ContainerWidget<MessageHandler> {
         if (out.find()) {
             String receiver = out.group(1);
             String message = out.group(2);
-            message = message.replace("￼", "obj");
             MessageData.addOrBumpPlayer(receiver);
             MessageData.instance.messages.get(receiver).add(System.currentTimeMillis() + "§Y§" + message);
             MessageScreen.setPlayer(receiver);

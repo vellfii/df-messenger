@@ -47,8 +47,8 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     // Screens Library
-//    modImplementation("maven.modrinth:scelli:${project.scelli_version}")
-    modImplementation(name:"Scelli-${project.scelli_version}")
+    modImplementation("maven.modrinth:scelli:${project.scelli_version}")
+//    modImplementation(name:"Scelli-${project.scelli_version}")
 
     // ModMenu
     modImplementation("com.terraformersmc:modmenu:${project.modmenu_version}")

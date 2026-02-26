@@ -16,7 +16,7 @@ import java.util.List;
 public class MessageScreen extends WidgetContainerScreen {
     private static final VerticalListWidget playerList = Widgets.create(VerticalListWidget::new, 0, 0, 100, 280).getWidget();
 
-    private static final VerticalListWidget messageBox = Widgets.create(VerticalListWidget::new, 0, 0, 285, 247).getWidget()
+    static final VerticalListWidget messageBox = Widgets.create(VerticalListWidget::new, 0, 0, 285, 247).getWidget()
             .withPadding(2, 4, 4, 2)
             .reversed();
 
@@ -43,6 +43,9 @@ public class MessageScreen extends WidgetContainerScreen {
 
     private static final StringInputWidget inputBox = Widgets.create(StringInputWidget::new, 0, 0, 285, 16)
             .withConfirmEvent((stringInputWidget) -> {
+        if (stringInputWidget.getString().isEmpty()) {
+            return;
+        }
         DFMessenger.sendCommand("msg " + player + " " + stringInputWidget.getString() + "\u200C");
         stringInputWidget.clearString();
     });
@@ -83,7 +86,7 @@ public class MessageScreen extends WidgetContainerScreen {
     }
 
     private static TextDisplayWidget messageParse(List<String> split) {
-        TextDisplayWidget msgWidget = Widgets.create(TextDisplayWidget::new, 0, 0, 270, 9);
+        WrappedTextDisplayWidget msgWidget = ((WrappedTextDisplayWidget) Widgets.create(WrappedTextDisplayWidget::new, 0, 0, 270, 9)).withTextWidth(140);
 
         Date oldDate = new Date(time);
         Date date = new Date(Long.parseLong(split.getFirst()));
@@ -130,7 +133,7 @@ public class MessageScreen extends WidgetContainerScreen {
                     new SimpleDateFormat("hh:mm a").format(date)).withColor(0xff888888).asOrderedText());
         }
 
-        lines.addAll(DFMessenger.wrapLines(line, 140));
+        lines.add(line.asOrderedText());
         msgWidget.setLines(lines);
         return msgWidget;
     }
