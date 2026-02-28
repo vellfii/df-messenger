@@ -139,7 +139,7 @@ public class MessageScreen extends WidgetContainerScreen {
     }
 
     private static TextDisplayWidget legacyMessageParse(List<String> split) {
-        TextDisplayWidget msgWidget = Widgets.create(TextDisplayWidget::new, 0, 0, 270, 9);
+        WrappedTextDisplayWidget msgWidget = ((WrappedTextDisplayWidget) Widgets.create(WrappedTextDisplayWidget::new, 0, 0, 270, 9)).withTextWidth(140);
         Text line;
         if (split.size() < 2) {
             line = Text.literal("");
@@ -150,7 +150,7 @@ public class MessageScreen extends WidgetContainerScreen {
             msgWidget.withTextAlignment(Alignment.RIGHT);
             line = Text.literal(split.get(1)).withColor(0xFFb7fcff);
         }
-        msgWidget.setLines(new ArrayList<>(DFMessenger.wrapLines(line, 140)));
+        msgWidget.setLines(line);
         return msgWidget;
     }
 

@@ -39,29 +39,34 @@ public class DFMessenger implements ClientModInitializer {
     public static Text textFromOrdered(OrderedText orderedText) {
         StyleCharacterVisitor styles = new StyleCharacterVisitor();
         orderedText.accept(styles);
-        styles.text.append(Text.literal(styles.sb.toString()).setStyle(styles.style));
+        if (styles.oldStyle != null) {
+            styles.text.append(Text.literal(styles.sb.toString()).setStyle(styles.oldStyle));
+        } else {
+            styles.text.append(Text.literal(styles.sb.toString()));
+        }
         return styles.text;
     }
 
     private static class StyleCharacterVisitor implements CharacterVisitor {
 
-        public Style style;
         public Style oldStyle;
         public StringBuilder sb = new StringBuilder();
         public MutableText text = Text.empty();
 
         @Override
         public boolean accept(int index, Style style, int codePoint) {
-            this.style = style;
             String s = new String(Character.toChars(codePoint));
-            if (oldStyle == null || oldStyle == style) {
+            if (oldStyle == style) {
                 sb.append(s);
-            } else {
+            } else if (oldStyle != null) {
                 text.append(Text.literal(sb.toString()).setStyle(oldStyle));
                 sb.setLength(0);
                 sb.append(s);
+            } else {
+                text.append(Text.literal(s).setStyle(style));
             }
             oldStyle = style;
+
             return true;
         }
     }

@@ -2,9 +2,7 @@ package net.velli.df_messenger;
 
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.MutableText;
 import net.minecraft.text.OrderedText;
-import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.velli.scelli.Scelli;
 import net.velli.scelli.widget.widgets.Alignment;
@@ -13,7 +11,6 @@ import net.velli.scelli.widget.widgets.TextDisplayWidget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class WrappedTextDisplayWidget extends TextDisplayWidget {
 
@@ -27,6 +24,7 @@ public class WrappedTextDisplayWidget extends TextDisplayWidget {
         List<OrderedText> renderLines = new ArrayList<>();
         for (OrderedText line : lines) {
             Text text = DFMessenger.textFromOrdered(line);
+//            text = Text.literal(text.getString());
             renderLines.addAll(textRenderer.wrapLines(text, textWidth));
         }
         for (OrderedText line : renderLines) {

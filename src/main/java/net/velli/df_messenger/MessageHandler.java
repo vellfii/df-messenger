@@ -37,11 +37,15 @@ public class MessageHandler extends ContainerWidget<MessageHandler> {
     public static final Pattern OUT_REGEX = Pattern.compile("\\[You → (.+)] (.+)");
 
     public static final Pattern LOCATE_SPAWN_REGEX = Pattern.compile(" {39}\\n(.+) (is|are) currently at spawn\\n→ Server: (.+)\\n {39}");
-    public static final Pattern LOCATE_PLOT_REGEX = Pattern.compile(" {39}\\n(.+) (is|are) currently (.+) on:\\n\\n→ (.+)\\n→ Owner: (.+)\\n→ Server: (.+)\\n {39}");
+    public static final Pattern LOCATE_PLOT_REGEX = Pattern.compile(" {39}\\n(.+) (is|are) currently (.+) on:\\n\\n→ (.+)\\n?(.+)?\\n→ Owner: (.+)\\n→ Server: (.+)\\n {39}");
 
     public static boolean packet(Packet<?> packet) {
-        if (packet instanceof LoginHelloS2CPacket || packet instanceof GameStateChangeS2CPacket) MessageData.loadMessages();
-        if (!(packet instanceof GameMessageS2CPacket(Text msgText, boolean overlay))) return false;
+        if (packet instanceof LoginHelloS2CPacket || packet instanceof GameStateChangeS2CPacket) {
+            MessageData.loadMessages();
+        }
+        if (!(packet instanceof GameMessageS2CPacket(Text msgText, boolean overlay))) {
+            return false;
+        }
         String string = msgText.getString();
 
         if (expectingLocate) {
@@ -72,9 +76,7 @@ public class MessageHandler extends ContainerWidget<MessageHandler> {
                         new PlayerTextObjectContents(ProfileComponent.ofDynamic(sender), true))
                         .append(Text.literal(" " + sender + ":"));
                 tdw.setLines(header);
-                for (OrderedText line : DFMessenger.wrapLines(Text.literal(message), 125)) {
-                    tdw.addLine(line);
-                }
+                tdw.addLine(Text.literal(message));
             }
             if (!(DFMessenger.MC.currentScreen instanceof MessageScreen) || sender.equals(MessageScreen.player)) {
                 MessageScreen.setPlayer(sender);
