@@ -8,7 +8,7 @@ import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.s2c.login.LoginHelloS2CPacket;
 import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket;
 import net.minecraft.network.packet.s2c.play.GameStateChangeS2CPacket;
-import net.minecraft.text.OrderedText;
+import net.minecraft.network.packet.s2c.play.PlaySoundFromEntityS2CPacket;
 import net.minecraft.text.Text;
 import net.minecraft.text.object.PlayerTextObjectContents;
 import net.velli.scelli.ScreenHandler;
@@ -27,39 +27,88 @@ public class MessageHandler extends ContainerWidget<MessageHandler> {
 
     public static float timer = 0f;
 
-    public static boolean expectingLocate = false;
+    public static boolean expectingWhois = false;
+    public static boolean checkingPlayerOnline = false;
+    private static boolean killNextShulkerSound = false;
 
     public MessageHandler() {
         addWidgets(notificationWidget);
     }
 
-    public static final Pattern INC_REGEX = Pattern.compile("\\[(.+) → You] (.+)");
-    public static final Pattern OUT_REGEX = Pattern.compile("\\[You → (.+)] (.+)");
+    public static final Pattern INC_REGEX = Pattern.compile("\\[([^\\[\\]]*) → You] (.+)");
+    public static final Pattern OUT_REGEX = Pattern.compile("\\[You → ([^\\[\\]]*)] (.+)");
 
     public static final Pattern LOCATE_SPAWN_REGEX = Pattern.compile(" {39}\\n(.+) (is|are) currently at spawn\\n→ Server: (.+)\\n {39}");
     public static final Pattern LOCATE_PLOT_REGEX = Pattern.compile(" {39}\\n(.+) (is|are) currently (.+) on:\\n\\n→ (.+)\\n?(.+)?\\n→ Owner: (.+)\\n→ Server: (.+)\\n {39}");
 
+    public static final Pattern WHOIS_REGEX = Pattern.compile(" {39}\\nProfile of ([^ ]+) (\\(.+\\))*?\\n\\n→ Ranks: (.+)\\n→ Badges: (.+)\\n→ Joined: (.+)\\n(.+\\n+)*? {39}");
+
     public static boolean packet(Packet<?> packet) {
         if (packet instanceof LoginHelloS2CPacket || packet instanceof GameStateChangeS2CPacket) {
             MessageData.loadMessages();
+        }
+        if (packet instanceof PlaySoundFromEntityS2CPacket sound) {
+            if (sound.getSound().getIdAsString().equals("minecraft:entity.shulker.hurt_closed")) {
+                if (killNextShulkerSound) {
+                    killNextShulkerSound = false;
+                    return true;
+                }
+            }
         }
         if (!(packet instanceof GameMessageS2CPacket(Text msgText, boolean overlay))) {
             return false;
         }
         String string = msgText.getString();
 
-        if (expectingLocate) {
-            expectingLocate = false;
-            Matcher locate = LOCATE_SPAWN_REGEX.matcher(string);
-            if (locate.find()) {
-                String player = locate.group(1).equals("You") ? DFMessenger.MC.player.getName().getString() : locate.group(1);
+        if (expectingWhois) {
+            expectingWhois = false;
+            Matcher whois = WHOIS_REGEX.matcher(string);
+            if (whois.find()) {
+                String player = whois.group(1).equals("You") ? DFMessenger.MC.player.getName().getString() : whois.group(1);
                 MessageScreen.setPlayer(player);
+                MessageScreen.updatePlayerList();
                 return true;
+            }
+//            Matcher locate = LOCATE_SPAWN_REGEX.matcher(string);
+//            if (locate.find()) {
+//                String player = locate.group(1).equals("You") ? DFMessenger.MC.player.getName().getString() : locate.group(1);
+//                MessageScreen.setPlayer(player);
+//                MessageScreen.updatePlayerList();
+//                return true;
+//            }
+//            locate = LOCATE_PLOT_REGEX.matcher(string);
+//            if (locate.find()) {
+//                String player = locate.group(1).equals("You") ? DFMessenger.MC.player.getName().getString() : locate.group(1);
+//                MessageScreen.setPlayer(player);
+//                MessageScreen.updatePlayerList();
+//                return true;
+//            }
+        }
+
+        if (checkingPlayerOnline) {
+            Matcher locate = LOCATE_SPAWN_REGEX.matcher(string);
+            boolean found = false;
+            if (locate.find()) {
+                MessageScreen.onlineColors.put(MessageScreen.player, 0xFF00FF00);
+                found = true;
             }
             locate = LOCATE_PLOT_REGEX.matcher(string);
             if (locate.find()) {
-                String player = locate.group(1).equals("You") ? DFMessenger.MC.player.getName().getString() : locate.group(1);
-                MessageScreen.setPlayer(player);
+                MessageScreen.onlineColors.put(MessageScreen.player, 0xFF00FF00);
+                found = true;
+            }
+            if (string.matches("Error: Could not find that player.")) {
+                MessageScreen.onlineColors.put(MessageScreen.player, 0xFFFF0000);
+                found = true;
+            }
+            if (found) {
+                checkingPlayerOnline = false;
+                killNextShulkerSound = true;
+                Text header = Text.object(
+                                new PlayerTextObjectContents(ProfileComponent.ofDynamic(MessageScreen.player), true))
+                        .append(Text.literal(" " + MessageScreen.player))
+                        .append(Text.literal(" ⏺").withColor(MessageScreen.onlineColors.getOrDefault(MessageScreen.player, 0xFF444444)));
+                MessageScreen.messageBoxHeader.setLines(header);
                 return true;
             }
         }
@@ -69,6 +118,7 @@ public class MessageHandler extends ContainerWidget<MessageHandler> {
             String sender = inc.group(1);
             String message = inc.group(2);
             MessageData.addOrBumpPlayer(sender);
+            MessageScreen.onlineColors.put(sender, 0xFF00FF00);
             MessageData.instance.messages.get(sender).add(System.currentTimeMillis() + "§" + sender + "§" + message);
             timer = 4f;
             if (instance.notificationWidget.getWidgets().getFirst() instanceof TextDisplayWidget tdw) {

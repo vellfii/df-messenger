@@ -1,5 +1,6 @@
 package net.velli.df_messenger;
 
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.component.type.ProfileComponent;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
@@ -7,11 +8,12 @@ import net.minecraft.text.object.PlayerTextObjectContents;
 import net.velli.scelli.screen.WidgetContainerScreen;
 import net.velli.scelli.widget.widgets.*;
 import net.velli.scelli.widget.widgets.containers.VerticalListWidget;
+import org.lwjgl.glfw.GLFW;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 public class MessageScreen extends WidgetContainerScreen {
     private static final VerticalListWidget playerList = Widgets.create(VerticalListWidget::new, 0, 0, 100, 280).getWidget();
@@ -20,11 +22,14 @@ public class MessageScreen extends WidgetContainerScreen {
             .withPadding(2, 4, 4, 2)
             .reversed();
 
-    private static final TextDisplayWidget messageBoxHeader = Widgets.create(TextDisplayWidget::new, 0, 0, 285, 9).withTextAlignment(Alignment.CENTER);
+    public static final TextDisplayWidget messageBoxHeader = Widgets.create(TextDisplayWidget::new, 0, 0, 285, 9).withTextAlignment(Alignment.CENTER);
+    private static final Logger log = LoggerFactory.getLogger(MessageScreen.class);
 
     public static String player = "";
     private static long time = 0;
     private static boolean yourMessage = false;
+
+    public static HashMap<String, Integer> onlineColors = new HashMap<>();
 
     private static final List<String> months = List.of(
             "Jan",
@@ -53,7 +58,7 @@ public class MessageScreen extends WidgetContainerScreen {
     protected MessageScreen() {
         super(null);
         addWidgets(
-                Widgets.create(VerticalListWidget::new, 0, 0, 400, 300)
+                Widgets.create(DFMListWidget::new, 0, 0, 400, 300)
                         .addWidgets(playerList)
                         .newColumn()
                         .addWidgets(messageBoxHeader, messageBox, inputBox)
@@ -62,6 +67,21 @@ public class MessageScreen extends WidgetContainerScreen {
         );
         inputBox.selected = true;
         updatePlayerList();
+    }
+
+    private double lastRender = System.currentTimeMillis();
+    private static double lastOnlineCheck = System.currentTimeMillis();
+
+    @Override
+    public void render(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
+        float delta = (float) (System.currentTimeMillis() - lastRender) / 1000;
+        if ((System.currentTimeMillis() - lastOnlineCheck) / 1000 > 5) {
+            DFMessenger.sendCommand("locate " + player);
+            MessageHandler.checkingPlayerOnline = true;
+            lastOnlineCheck = System.currentTimeMillis();
+        }
+        super.render(context, mouseX, mouseY, deltaTicks);
+        lastRender = System.currentTimeMillis();
     }
 
     public static void setPlayer(String name) {
@@ -81,7 +101,8 @@ public class MessageScreen extends WidgetContainerScreen {
         player = name;
         Text header = Text.object(
                 new PlayerTextObjectContents(ProfileComponent.ofDynamic(name), true))
-                .append(Text.literal(" " + name));
+                .append(Text.literal(" " + name))
+                .append(Text.literal(" ⏺").withColor(onlineColors.getOrDefault(name, 0xFF444444)));
         messageBoxHeader.setLines(header);
     }
 
@@ -161,8 +182,8 @@ public class MessageScreen extends WidgetContainerScreen {
                 .withConfirmEvent(stringInputWidget -> {
                 String player = stringInputWidget.getString();
                 if (player.isBlank()) player = "blingledinglesporpus";
-                DFMessenger.sendCommand("locate " + player);
-                MessageHandler.expectingLocate = true;
+                DFMessenger.sendCommand("whois " + player);
+                MessageHandler.expectingWhois = true;
                 stringInputWidget.setString("");
         }));
         if (players.isEmpty()) return;
@@ -177,14 +198,26 @@ public class MessageScreen extends WidgetContainerScreen {
                 @Override
                 public void onClick(ButtonWidget buttonWidget, int i, int i1) {
                     if (buttonWidget.isHovered()) {
+                        if (GLFW.glfwGetKey(DFMessenger.MC.getWindow().getHandle(), GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS) {
+                            MessageData.instance.playerOrder.remove(player);
+                            updatePlayerList();
+                            MessageData.saveMessages();
+                            return;
+                        }
                         setPlayer(player);
                         updatePlayerList();
+                        double timeSinceCheck = (System.currentTimeMillis() - lastOnlineCheck) / 1000;
+                        if (timeSinceCheck > 0.5 && timeSinceCheck < 4.5) {
+                            DFMessenger.sendCommand("locate " + player);
+                            MessageHandler.checkingPlayerOnline = true;
+                            lastOnlineCheck = System.currentTimeMillis();
+                        }
                     }
                 }
 
                 @Override
                 public void onRelease(ButtonWidget buttonWidget, int i, int i1) {}
-            }));
+            }).withPosition(10000, 10000, true));
         }
     }
 }

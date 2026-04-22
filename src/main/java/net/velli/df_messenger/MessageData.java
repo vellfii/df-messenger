@@ -3,6 +3,7 @@ package net.velli.df_messenger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.entity.decoration.MannequinEntity;
 
 import java.io.IOException;
 import java.io.Reader;
